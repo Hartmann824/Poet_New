@@ -12,6 +12,8 @@ public class attack : MonoBehaviour
     [SerializeField] Text Player_HP;
     [SerializeField] Text AttackType;
     [SerializeField] InputField passwordInputField;
+    [SerializeField] GameObject Win;
+    [SerializeField] GameObject Lose;
     public int Enemy_NP_num = 0;
     public int Enemy_HP_num = 100;
     public int Player_NP_num = 0;
@@ -21,16 +23,16 @@ public class attack : MonoBehaviour
     private IEnumerator countdownCoroutine;
     public bool defendfailed = false;
     public bool isPaused = false;
+    public int countdown = 10;
     // Start is called before the first frame update
     void Start()
     {
-
-        Enemy_NP.text = Enemy_NP_num.ToString();
-        Enemy_HP.text = Enemy_HP_num.ToString();
-        Player_NP.text = Player_NP_num.ToString();
-        Player_HP.text = Player_HP_num.ToString();
+        SyncUI();
+        Win.SetActive(false);
+        Lose.SetActive(false);
         countdownCoroutine = Countdown();
         passwordInputField.onEndEdit.AddListener(OnPasswordEnter);
+        StartGame();
 
     }
 
@@ -41,11 +43,13 @@ public class attack : MonoBehaviour
         {
             Debug.Log("You lose");
             CancelInvoke("SecondCheck");
+            Win.SetActive(true);
         }
         if (Enemy_HP_num == 0)
         {
             Debug.Log("You Win");
             CancelInvoke("SecondCheck");
+            Lose.SetActive(true);
         }
     }
 
@@ -54,19 +58,28 @@ public class attack : MonoBehaviour
         InvokeRepeating("SecondCheck", 1, 1);
     }
 
-    public void SencondCheck() 
+    public void SecondCheck() 
     {
-        Player_NP_num++;
-        Enemy_NP_num = Enemy_NP_num + 2;
+        if (Player_NP_num <= 100)
+        { 
+            Player_NP_num = Player_NP_num +5;
+        }
+        if(Enemy_NP_num <= 100)
+        {
+            Enemy_NP_num = Enemy_NP_num + 2;
+            Debug.Log("Enemy NP Added");
+        }
+
+        SyncUI();
         if (Enemy_NP_num >= 10)
         {
-
             LightAttackCheck();
         }
-        if (Enemy_NP_num == 100)
+        else if (Enemy_NP_num == 100)
         {
             HeavyAttackCheck();
         }
+        Debug.Log("Checked");
     }
     public void LightAttackCheck() 
     {
@@ -78,7 +91,10 @@ public class attack : MonoBehaviour
             AttackType.text = randomChoice;
             if (randomChoice != "Skip") 
             {
-                CancelInvoke("SecondCheck");
+                Enemy_NP_num = Enemy_NP_num - 10;
+
+                countdown = 10;
+                SyncUI();
                 StartCoroutine(countdownCoroutine);
             }
            
@@ -87,40 +103,45 @@ public class attack : MonoBehaviour
     }
     public void HeavyAttackCheck() 
     {
+        Enemy_NP_num = Enemy_NP_num - 100;
         AttackType.text = "HeavyAttack";
-        CancelInvoke("SecondCheck");
+
+        countdown = 10;
+        SyncUI();
         StartCoroutine(countdownCoroutine);
 
     }
 
     private IEnumerator Countdown()
     {
-        int countdown = 10;
         defendfailed = false;
-        while (countdown > 0 && !defendfailed)
+        CancelInvoke("SecondCheck");
+        while (countdown >= 0 && defendfailed == false)
         {
             if (!isPaused)
             {
                 CountdownUI.text = countdown.ToString();
-                yield return new WaitForSeconds(1f); // µ¥«Ý1¬í
                 countdown--;
+                Debug.Log(countdown);
+                yield return new WaitForSeconds(1f); // µ¥«Ý1¬í
+                
             }
             else
             {
                 yield return null;
             }
         }
-        if (countdown == 0)
+        if (countdown <= 0)
         {
-            defendfailed = true;
             AttackResult();
+            StartGame();
             StopCoroutine(countdownCoroutine);
         }
         if (defendfailed == true) 
         {
-            StopCoroutine(countdownCoroutine);
             AttackResult();
-            InvokeRepeating("SecondCheck", 1, 1);
+            StartGame();
+            StopCoroutine(countdownCoroutine);
         }
     }
 
@@ -129,13 +150,16 @@ public class attack : MonoBehaviour
         string password = AttackType.text.ToString();
         if (input == password) // °²³]"password"¬O¥¿½Tªº±K½X
         {
+            passwordInputField.text = "";
             Debug.Log("±K½X¥¿½T¡A²×¤î­Ë­p®É¡I");
-            StopCoroutine(countdownCoroutine);
             defendfailed = false;
-            InvokeRepeating("SecondCheck", 1, 1);
+            StartGame();
+            StopCoroutine(countdownCoroutine);
         }
         else
         {
+            passwordInputField.text = "";
+            PlayerAttack();
             Debug.Log("±K½X¿ù»~");
         }
     }
@@ -155,7 +179,50 @@ public class attack : MonoBehaviour
                 Player_HP_num = Player_HP_num - 50;
                 break;
         }
+        SyncUI();
+        StartGame();
+        
     }
 
+    public void SyncUI()
+    {
+        Enemy_NP.text = Enemy_NP_num.ToString();
+        Enemy_HP.text = Enemy_HP_num.ToString();
+        Player_NP.text = Player_NP_num.ToString();
+        Player_HP.text = Player_HP_num.ToString();
+    }
 
+    public void PlayerAttack() 
+    {
+        string[] attack_list = {"Player Attack 1", "Player Attack 2"  , "Player Attack 3" };
+        string ATC = AttackType.text.ToString();
+        if (ATC == "Player Attack 1" || ATC == "Player Attack 2")
+        {
+            if (Player_NP_num >= 10)
+            {
+                Player_NP_num = Player_NP_num - 10;
+                switch (ATC)
+                {
+                    case "Player Attack 1":
+                        Player_HP_num = Player_HP_num - 10;
+                        break;
+                    case "Player Attack 2":
+                        Player_HP_num = Player_HP_num - 20;
+                        break;
+                }
+            }
+        }
+
+        if (ATC == "Player Attack 3" && Player_NP_num == 100)
+        {
+            Player_NP_num = Player_NP_num - 100;
+            Player_HP_num = Player_HP_num - 50;
+        }
+        else
+        {
+            Player_NP_num = Player_NP_num - 10;
+        }
+        SyncUI();
+        StartGame();
+    }
 }
