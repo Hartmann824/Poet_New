@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,12 +10,16 @@ public class Enemy_behavior : MonoBehaviour
     [SerializeField] Text Enemy_NP_UI;
     [SerializeField] Text EnemyAction;
     [SerializeField] InputField inputField;
+    [SerializeField] Text CountDownUI;
+    [SerializeField] Text tof;
     public int Enemy_HP = 100;
     public int Enemy_NP = 0;
-    public bool isSecletable = false;
+    public bool isSelectable = true;
+
     private Dictionary<string, float> cooldowns = new Dictionary<string, float>();
     private Dictionary<string, float> defendtime = new Dictionary<string, float>();
-    private List<string> availableSkills = new List<string>(); 
+    private List<string> availableSkills = new List<string>();
+    private Coroutine defendingCoroutine;
     // Start is called before the first frame update
     void Start()
     {
@@ -25,6 +30,7 @@ public class Enemy_behavior : MonoBehaviour
         cooldowns.Add("HeavyAttack", 10f);
         defendtime.Add("LightAttack", 5f);
         defendtime.Add("HeavyAttack", 10f);
+        isSelectable = true;
         foreach (string skillName in cooldowns.Keys)
         {
             availableSkills.Add(skillName);
@@ -34,10 +40,11 @@ public class Enemy_behavior : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (!isSecletable) 
+        if (isSelectable) 
         {
             StartCoroutine(Selection());
         }
+        tof.text = isSelectable.ToString();
     }
 
     public void action(string SelectedAction) 
@@ -46,10 +53,14 @@ public class Enemy_behavior : MonoBehaviour
         if (defendtime.ContainsKey(SelectedAction))
         {
             EnemyAction.text = SelectedAction;
+            defendingCoroutine = StartCoroutine(Defending(SelectedAction, defendtime[SelectedAction]));
+            StartCoroutine(CoolDownTimer(SelectedAction, cooldowns[SelectedAction]));
         }
         else 
         {
             Debug.Log("Enemy Action：" + SelectedAction);
+            isSelectable = true;
+            StartCoroutine(CoolDownTimer(SelectedAction, cooldowns[SelectedAction]));
         }
         
 
@@ -57,13 +68,18 @@ public class Enemy_behavior : MonoBehaviour
 
     private IEnumerator Selection() 
     {
-        isSecletable = true;
+        Debug.Log("start selection");
+        isSelectable = false;
         yield return new WaitForSeconds(5f);
 
         System.Random rand = new System.Random();
-        string selection = availableSkills[rand.Next(availableSkills.Count)];
-        action(selection);
-        isSecletable = false;
+        if (availableSkills.Any()) 
+        {
+            string selection = availableSkills[rand.Next(availableSkills.Count)];
+            //Debug.Log(availableSkills);
+            action(selection);
+        }
+        //isSelectable = true;
         
     }
 
@@ -73,6 +89,7 @@ public class Enemy_behavior : MonoBehaviour
         cooldowns[skillName] = Time.time + cooldown;
         while (Time.time < cooldowns[skillName])
         {
+            
             yield return null;
         }
         availableSkills.Add(skillName);
@@ -86,14 +103,26 @@ public class Enemy_behavior : MonoBehaviour
 
     private IEnumerator Defending(string skillName, float DefendingTime) 
     {
-        isSecletable = false;
-        defendtime[skillName] = Time.time + DefendingTime;
-        while (Time.time < defendtime[skillName])
+        isSelectable = false;
+        float remainingTime = DefendingTime;
+        while (remainingTime > 0)
         {
+            CountDownUI.text = remainingTime.ToString("F0"); // 顯示剩餘秒數
+            remainingTime -= Time.deltaTime;
             yield return null;
         }
-        isSecletable = true;
+        CountDownUI.text = ""; // 清空倒數UI
+        isSelectable = true;
+    }
+    public void StopDefending()
+    {
+        if (defendingCoroutine != null)
+        {
+            CountDownUI.text = ""; 
+            StopCoroutine(defendingCoroutine);
+            isSelectable = true;
+        }
     }
 
-    
+
 }
