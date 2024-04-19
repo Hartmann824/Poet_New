@@ -107,5 +107,18 @@ public class Player_Behavior : MonoBehaviour
         return Time.time < cooldowns[SkillName];
     }
 
+    public int getnumber(string request) 
+    {
+        switch(request)
+        { 
+            case "HP":
+                return Player_HP;
+            case "NP":
+                return Player_NP;
+            default:
+                return 0;
+        }           
+    }
+
 
 }

@@ -12,6 +12,8 @@ public class Enemy_behavior : MonoBehaviour
     [SerializeField] InputField inputField;
     [SerializeField] Text CountDownUI;
     [SerializeField] Text tof;
+    [SerializeField] GameObject Manager;
+    //[SerializeField] GameObject TestButtom;
     public int Enemy_HP = 100;
     public int Enemy_NP = 0;
     public bool isSelectable = true;
@@ -20,10 +22,12 @@ public class Enemy_behavior : MonoBehaviour
     private Dictionary<string, float> defendtime = new Dictionary<string, float>();
     private List<string> availableSkills = new List<string>();
     private Coroutine defendingCoroutine;
+    private MainControl MainControl;
     // Start is called before the first frame update
     void Start()
     {
         SyncUI();
+        MainControl = Manager.GetComponent<MainControl>();
         cooldowns.Add("regenerate", 5f);
         cooldowns.Add("recharge", 10f);
         cooldowns.Add("LightAttack", 0f);
@@ -77,6 +81,7 @@ public class Enemy_behavior : MonoBehaviour
         {
             string selection = availableSkills[rand.Next(availableSkills.Count)];
             //Debug.Log(availableSkills);
+            MainControl.CheckAttack(selection);
             action(selection);
         }
         //isSelectable = true;
@@ -89,7 +94,6 @@ public class Enemy_behavior : MonoBehaviour
         cooldowns[skillName] = Time.time + cooldown;
         while (Time.time < cooldowns[skillName])
         {
-            
             yield return null;
         }
         availableSkills.Add(skillName);
@@ -121,6 +125,19 @@ public class Enemy_behavior : MonoBehaviour
             CountDownUI.text = ""; 
             StopCoroutine(defendingCoroutine);
             isSelectable = true;
+        }
+    }
+
+    public int getnumber(string request)
+    {
+        switch (request)
+        {
+            case "HP":
+                return Enemy_HP;
+            case "NP":
+                return Enemy_NP;
+            default:
+                return 0;
         }
     }
 
